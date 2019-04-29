@@ -1,21 +1,29 @@
 ---
 title: "Comentários e cultura"
+author: "João Victor Mafra"
 output:
-    html_document:
-    df_print: paged
-theme: sandstone
+  prettydoc::html_pretty:
+    df_print: kable
+    theme: tactile
+    highlight: github
 ---
+
+
+<style>
+body {
+text-align: justify}
+</style>
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
 library(viridis)
-source(here::here("code/lib.R"))
+source(here::here("code/import_data.R"))
 theme_set(theme_bw())
 
 knitr::opts_chunk$set(tidy = FALSE,
-                      fig.width = 6,
-                      fig.height = 5)
+                      fig.width = 8,
+                      fig.height = 6)
 ```
 
 ```{r read}
@@ -33,7 +41,6 @@ dados = read_csv(
     )
 ) %>% 
     filter(usuarios > 200)
-glimpse(dados)
 ```
 
 Estamos interessados na relação entre quanto as pessoas de diferentes países comentam em questões dos outros. A proporção das pessoas do país que comentou nas questões de outros está medido na variável `comentaram_prop`. 
@@ -44,11 +51,121 @@ Considerando essa variável, queremos examinar a relação entre ela e o quão h
 
 Faça uma visualização que usa os princípios de eficácia no projeto de visualizações para facilitar as comparações que você acha que são as mais importantes para entendermos esse contexto. 
 
+Observando apenas as duas variáveis (separadas por site) podemos observar que existe uma certa correlação negativa indicando que quanto mais hierárquicas são as relações em um país, mais as pessoas estão propensas a NÃO comentarem. Entretanto essa correlação não é tão forte segundo o coeficiente obtido usando o método de Spearman, apesar de estar mais próximo do 1 do que do 0.
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = comentaram_prop, color = site), alpha = .8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)")
+
+cor(dados$PDI, dados$comentaram_prop, method = "spearman")
+```
+
+
+Considerando agora mais duas variáveis na visualização, temos que a área dos pontos representam a quantidade de usuários no país. Intuitivamente, quanto maior a área do ponto, mais usuários um país tem registrado em determinado site.
+
+A saturação do ponto, por sua vez, indicam o quão as pessoas de um país tem acesso a internet. Intuitivamente, quanto mais escuro um ponto, mais acesso a internet as pessoas daquele país possuem. 
+
+O objetivo é ver se a quantidade de usuários, o acesso a internet e o PDI impactam no fato de uma pessoa comentar ou não em questões dos outros.
+
+Como já dito anteriormente, a correlação entre o PDI e comentários é vista mais claramente pela posição dos pontos nas escalas. Uma correlação positiva entre acesso a internet e comentários também pode ser observada, tendo em vista que pontos mais escuros concentram-se na parte superior do gráfico e pontos mais claros na parte inferior. 
+
+```{r}
+
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = comentaram_prop, size = usuarios, color = Internet), alpha = 0.8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)") +
+    scale_colour_gradient(guide=guide_colourbar(reverse = TRUE), trans = "reverse")
+
+```
+
+Calculando o coeficiente de correlação entre internet e comentários para verificar o que foi observado, uma correlação positiva e mais próxima de 1 do que 0 (0.63) é obtida.
+
+```{r}
+cor(dados$Internet, dados$comentaram_prop, method = "spearman", use = "pairwise.complete.obs")
+```
+
+O número de usuários (representado pela área dos pontos), entretanto, aparenta não ter uma relação com os comentários. Temos pontos de diferentes tamanhos em diferentes parte da visualização. Índia e EUA, por exemplo, dois países com mais usuários, estão distantes um do outro. Os americanos tem uma proporção bem mais alta de pessoas comentando nas questões dos que os indianos. O país com maior proporção de pessoas comentando (Israel) possui um número pequeno de usuários registrados (apenas 3 mil).
+
+Uma observação a ser feita é que os pontos do gráfico referentes ao SuperUser são menores que os pontos do StackOverflow por esta plataforma apresentar bem menos usuários registrados.
+
+O coeficiente de correlação entre número de usuários e comentários nos fornece uma correlação positiva, porém fraca (0.28), algo mais próximo do 0 do que de 1.
+
+
+
+```{r}
+cor(dados$usuarios, dados$comentaram_prop, method = "spearman", use = "pairwise.complete.obs")
+```
+
 ## Outras formas de ver
 
 Em seguida, faça 5 visualizações que usem as mesmas variáveis e também pontos, mas que sejam **menos eficazes** que a que você escolheu acima. 
 
-## Bônus
+Será levada em consideração a visualização que envolve as 4 variáveis (`comentaram_prop`, `PDI`, `usuarios` e 
+`Internet`). Julgando que  `PDI` e `comentaram_prop` são as variáveis mais importantes para comparação elas foram escolhidas para ficarem nas escalas x e y. As outras duas variáveis são quantitativas e portanto ordenáveis, por isso a escolha da área e saturação do ponto.
 
-Inclua o continente dos países (`six_regions`) na visualização.
+### Visualização 1
 
+Uso da variável `Internet` em uma escala reversa de saturação.
+
+Nosso cérebro nos leva a acreditar que valor maior está associado a um ponto mais escuro. 
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = comentaram_prop, size = usuarios, color = Internet), alpha = 0.8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)")
+```
+
+
+### Visualização 2
+
+Uso da variável `site` como um shape ao invés de um plot separado
+
+Dificulta a identificação, além de que adicionar mais uma variável na visualização polui mais o gráfico prejudicando até a visualização de outras variáveis. 
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = comentaram_prop, size = usuarios, color = Internet, shape = site), alpha = 0.8) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)") +
+    scale_colour_gradient(guide=guide_colourbar(reverse = TRUE), trans = "reverse")
+```
+
+### Visualização 3
+
+Retirar a variável principal a ser observada da posição de escala.
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = usuarios, size = comentaram_prop, color = Internet), alpha = 0.8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)") +
+    scale_colour_gradient(guide=guide_colourbar(reverse = TRUE), trans = "reverse")
+```
+
+
+### Visualização 4
+
+Colocar a variável `usuarios` (que tem pouquíssima relação com a variável principal a ser analisada) na escala x. Isso dificulta a visualização de todas as outras variáveis devido a concentração dos pontos numa região.
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = usuarios, y = comentaram_prop, size = PDI, color = Internet), alpha = 0.8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)") +
+    scale_colour_gradient(guide=guide_colourbar(reverse = TRUE), trans = "reverse")
+```
+
+### Visualização 5
+
+Não usar saturação de uma cor numa variável numérica e ordenável. As diferentes tonalidades de cor da variável internet dificulta a nossa noção de compreender o que é maior e o que é menor
+
+```{r}
+ggplot(dados) +
+    geom_point(aes(x = PDI, y = comentaram_prop, size = usuarios, color = Internet), alpha = 0.8) +
+    facet_grid(~site) +
+    labs(x = "PDI", y = "Proporção dos que comentaram em um país (%)") +
+    scale_color_gradient(low = "blue", high = "darkgoldenrod1")
+```
